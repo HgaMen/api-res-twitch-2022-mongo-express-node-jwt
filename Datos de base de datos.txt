@@ -1,0 +1,5 @@
+valeriano
+
+827WNfNVApgg5ewg
+
+mongodb+srv://<username>:<password>@cluster0.o7tzt.mongodb.net/?retryWrites=true&w=majority
