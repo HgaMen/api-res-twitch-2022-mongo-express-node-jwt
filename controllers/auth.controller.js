@@ -1,5 +1,6 @@
 import { User } from '../models/User.js';
 import jwt from 'jsonwebtoken';
+import { generateRefreshToken, generateToken } from '../utils/tokenManager.js';
 
 export const register = async (req, res) => {
   const { email, password } = req.body;
@@ -36,11 +37,56 @@ export const login = async (req, res) => {
       return res.status(403).json({ error: 'Contraseña incorrecta' });
 
     // Generar el token JWT
-    const token = jwt.sign({ uid: user.id }, process.env.JWT_SECRET);
+    const { token, expiresIn } = generateToken(user.id);
+    generateRefreshToken(user.id, res);
 
-    return res.json({ ok: token });
+    // res.cookie('token', token, {
+    //   httpOnly: true,
+    //   secure: !(process.env.MODO === 'developer'),
+    // });
+
+    return res.json({ token, expiresIn });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ error: 'Error de servidor' });
   }
+};
+
+export const infoUser = async (req, res) => {
+  try {
+    const user = await User.findById(req.uid).lean(); // Con lean regresa un objeto simple de javascript en lo lugar de enriquecido con todas los métodos disponibles de mongoose
+    return res.json({ email: user.email, uid: user.id });
+  } catch (error) {
+    return res.status(500).json({ error: 'error de server' });
+  }
+};
+
+export const refreshToken = (req, res) => {
+  try {
+    const refreshTokenCookie = req.cookies.refreshToken;
+    if (!refreshTokenCookie) throw new Error('No existe el token');
+
+    const { uid } = jwt.verify(refreshTokenCookie, process.env.JWT_REFRESH);
+    const { token, expiresIn } = generateToken(uid);
+
+    return res.json({ token, expiresIn });
+  } catch (error) {
+    console.log(error);
+    const TokenVerificationErrors = {
+      'invalid signature': 'La firma del JWT no es válida',
+      'jwt expired': 'JWT expirado',
+      'invalid token': 'Token no válido',
+      'No Bearer': 'Utiliza formato Bearer',
+      'jwt malformed': 'JWT formato no válido',
+    };
+
+    return res
+      .status(401)
+      .send({ error: TokenVerificationErrors[error.message] });
+  }
+};
+
+export const logout = (req, res) => {
+  res.clearCookie('refreshToken');
+  res.json({ ok: true });
 };
