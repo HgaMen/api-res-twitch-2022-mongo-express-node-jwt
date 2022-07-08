@@ -7,7 +7,7 @@ import {
   logout,
 } from '../controllers/auth.controller.js';
 import { requiereToken } from '../middlewares/requiereToken.js';
-import { requiereRefreshToken } from '../middlewares/requiererefreshToken.js';
+import { requiereRefreshToken } from '../middlewares/requiereRefreshToken.js';
 import {
   bodyLoginValidator,
   bodyRegisterValidator,
